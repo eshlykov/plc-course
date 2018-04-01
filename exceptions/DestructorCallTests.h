@@ -1,7 +1,6 @@
 #pragma once
 
 class CDestructorCallTestClass {
-
 public:
 	static bool DestructrorNotCalled;
 

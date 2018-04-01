@@ -2,6 +2,7 @@
 #include "DestructorCallTests.h"
 
 #include <iostream>
+#include <memory>
 
 void CheckAll()
 {
@@ -10,7 +11,15 @@ void CheckAll()
 
 int main()
 {
-	CheckAll();
+	//CheckAll();
+
+	Try(
+		Throw( ET_Exception );
+	) Catch ( ET_Exception,
+		std::cout << "ok" << std::endl;
+	) Finally (
+		std::cout << "fin" << std::endl;
+	)
 	
 	Try (
 		std::cout << "try" << std::endl;

@@ -7,17 +7,7 @@ std::unique_ptr<CThrowHandler> topThrowHandler{ new CThrowHandler{} };
 
 //---------------------------------------------------------------------------------------------------------------------
 
-//CManagedObject::CManagedObject()
-//{
-//	if( topThrowHandler != nullptr ) {
-//		//prevObject = std::move( topThrowHandler->GetObject() );
-//		//topThrowHandler->SetObject( this );
-//	}
-//}
-//
-//CManagedObject::~CManagedObject()
-//{
-//	if( topThrowHandler != nullptr ) {
-//		//topThrowHandler->SetObject( prevObject.release() );
-//	}
-//}
+CManagedObject::CManagedObject()
+{
+	topThrowHandler->objects.insert( std::move( std::unique_ptr<CManagedObject>( this ) ) );
+}

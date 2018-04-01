@@ -3,7 +3,7 @@
 #include <csetjmp>
 #include <iostream>
 #include <memory>
-#include <type_traits>
+#include <unordered_set>
 
 class CThrowHandler;
 extern std::unique_ptr<CThrowHandler> topThrowHandler;
@@ -41,13 +41,13 @@ enum TExceptionType : int {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-//class CManagedObject {
-//public:
-//	std::unique_ptr<CManagedObject> prevObject{ nullptr };
-//
-//	CManagedObject();
-//	virtual ~CManagedObject();
-//};
+class CManagedObject {
+public:
+	std::shared_ptr<CManagedObject> prevObject{ nullptr };
+
+	CManagedObject();
+	~CManagedObject() = default;
+};
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ public:
 	std::jmp_buf JumpBuffer{};
 	std::unique_ptr<CThrowHandler> prevHandler{ nullptr };
 	std::unique_ptr<CThrowHandler> nextHandler{ nullptr };
-	//std::unique_ptr<CManagedObject> object{ nullptr };
+	std::unordered_set<std::unique_ptr<CManagedObject>> objects{};
 
 	CThrowHandler() = default;
 	~CThrowHandler() = default;
@@ -65,9 +65,10 @@ public:
 //---------------------------------------------------------------------------------------------------------------------
 
 #define Try( tryBlock ) { \
-	auto handler = std::move( topThrowHandler ); \
+	auto handler = std::move( topThrowHandler ); /* TODO Use constructor. */ \
 	topThrowHandler = std::make_unique<CThrowHandler>(); \
 	topThrowHandler->prevHandler = std::move( handler ); \
+	\
 	switch(  setjmp( topThrowHandler->JumpBuffer ) ) { \
 		case 0: \
 		{ \
@@ -95,9 +96,11 @@ public:
 	if( topThrowHandler->prevHandler == nullptr ) { \
 		std::terminate(); \
 	} \
+	\
 	auto prevHandler = std::move( topThrowHandler->prevHandler ); \
 	auto handler = std::move( topThrowHandler ); \
 	topThrowHandler = std::move( prevHandler ); \
 	topThrowHandler->nextHandler = std::move( handler ); \
+	\
 	std::longjmp( topThrowHandler->nextHandler->JumpBuffer, exceptionType ); \
 }

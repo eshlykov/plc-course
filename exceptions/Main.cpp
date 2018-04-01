@@ -14,11 +14,12 @@ int main()
 	//CheckAll();
 
 	Try(
+		std::cout << ":)" << std::endl;
 		Throw( ET_Exception );
 	) Catch ( ET_Exception,
-		std::cout << "ok" << std::endl;
+		std::cout << ":(" << std::endl;
 	) Finally (
-		std::cout << "fin" << std::endl;
+		std::cout << ":|" << std::endl;
 	)
 	
 	Try (

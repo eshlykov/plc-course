@@ -58,17 +58,14 @@ public:
 	std::unique_ptr<CThrowHandler> nextHandler{ nullptr };
 	std::unordered_set<std::unique_ptr<CManagedObject>> objects{};
 
-	CThrowHandler() = default;
+	CThrowHandler( std::unique_ptr<CThrowHandler>&& _prevHandler = nullptr );
 	~CThrowHandler() = default;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
 #define Try( tryBlock ) { \
-	auto handler = std::move( topThrowHandler ); /* TODO Use constructor. */ \
-	topThrowHandler = std::make_unique<CThrowHandler>(); \
-	topThrowHandler->prevHandler = std::move( handler ); \
-	\
+	topThrowHandler = std::make_unique<CThrowHandler>( std::move( topThrowHandler ) ); \
 	switch(  setjmp( topThrowHandler->JumpBuffer ) ) { \
 		case 0: \
 		{ \
@@ -76,8 +73,8 @@ public:
 			break; \
 		}
 
-#define Catch( exceptionType, catchBlock ) \
-		case TExceptionType::exceptionType: \
+#define Catch( type, catchBlock ) \
+		case TExceptionType::type: \
 		{ \
 			catchBlock; \
 			break; \

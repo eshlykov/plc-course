@@ -210,7 +210,7 @@ TEST( Jumping, CatchingFunction )
 
 void FailingCatchingFunction()
 {
-	Try(
+	Try (
 		FailingFunction();
 	) Catch ( ET_Exception,
 		Throw( ET_Exception );
@@ -222,9 +222,9 @@ TEST( Jumping, FailingCatchingFunction )
 {
 	bool isExceptionCaught = false;
 
-	Try(
+	Try (
 		FailingCatchingFunction();
-	) Catch( ET_Exception,
+	) Catch ( ET_Exception,
 		isExceptionCaught = true;
 	) Finally (
 	)
@@ -271,11 +271,11 @@ TEST( Clearing, DestructorCall )
 {
 	ClearTestObjectCounters();
 
-	Try(
+	Try (
 		CTestObject object{};
 		Throw( ET_Exception );
-	) Catch( ET_Exception,
-	) Finally(
+	) Catch ( ET_Exception,
+	) Finally (
 	)
 
 	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
@@ -290,7 +290,7 @@ TEST( Clearing, NoDestructorExtraCall )
 
 	CTestObject object{};
 
-	Try(
+	Try (
 		Throw( ET_Exception );
 	) Catch ( ET_Exception,
 	) Finally (
@@ -312,7 +312,7 @@ TEST( Clearing, ObjectInFunction )
 {
 	ClearTestObjectCounters();
 
-	Try(
+	Try (
 		CreateObjectAndFail();
 	) Catch ( ET_Exception,
 	) Finally (
@@ -335,7 +335,7 @@ TEST( Clearing, ObjectCopyInParameters )
 
 	CTestObject object{};
 
-	Try(
+	Try (
 		TakeObjectCopyAndFail( object );
 	) Catch ( ET_Exception,
 	) Finally (

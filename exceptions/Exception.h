@@ -1,14 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <csetjmp>
 #include <memory>
 #include <unordered_set>
-
-class CThrowHandler;
-
-extern std::unique_ptr<CThrowHandler> topThrowHandler;
-
-//---------------------------------------------------------------------------------------------------------------------
 
 enum TExceptionType : int {
 	ET_BadAlloc = 1,
@@ -48,27 +43,48 @@ public:
 	std::jmp_buf JumpBuffer{};
 	std::unique_ptr<CThrowHandler> PrevHandler{ nullptr };
 	std::unique_ptr<CThrowHandler> NextHandler{ nullptr };
-	std::unordered_set<std::unique_ptr<CManagedObject>> Objects{};
+	std::unordered_set<CManagedObject*> Objects{};
 
-	CThrowHandler( std::unique_ptr<CThrowHandler>&& prevHandler = nullptr ) :
-		PrevHandler{ std::move( prevHandler ) }
-	{
-	}
+	CThrowHandler( std::unique_ptr<CThrowHandler>&& prevHandler = nullptr );
+	~CThrowHandler();
 
-	~CThrowHandler() = default;
+	void ClearObjects();
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
 class CManagedObject {
 public:
-	CManagedObject()
-	{
-		topThrowHandler->Objects.insert( std::move( std::unique_ptr<CManagedObject>( this ) ) );
-	}
-
-	~CManagedObject() = default;
+	CManagedObject();
+	virtual ~CManagedObject() = default;
 };
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CThrowHandler::CThrowHandler( std::unique_ptr<CThrowHandler>&& prevHandler ) :
+	PrevHandler{ std::move( prevHandler ) }
+{
+}
+
+CThrowHandler::~CThrowHandler()
+{
+	ClearObjects();
+}
+
+void CThrowHandler::ClearObjects()
+{
+	std::for_each( Objects.begin(), Objects.end(), [] ( CManagedObject* const pointer ) { pointer->~CManagedObject(); } );
+	Objects.clear();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+std::unique_ptr<CThrowHandler> topThrowHandler{ new CThrowHandler{} };
+
+CManagedObject::CManagedObject()
+{
+	topThrowHandler->Objects.insert( this );
+}
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -104,7 +120,7 @@ public:
 	\
 	auto prevHandler = std::move( topThrowHandler->PrevHandler ); \
 	auto handler = std::move( topThrowHandler ); \
-	handler->Objects.clear(); \
+	handler->ClearObjects(); \
 	topThrowHandler = std::move( prevHandler ); \
 	topThrowHandler->NextHandler = std::move( handler ); \
 	\

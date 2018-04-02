@@ -9,38 +9,70 @@ void CheckAll()
 	CheckNoDestructorCallsWhenThrow();
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+class CTestObject : private CManagedObject {
+public:
+	static int ObjectsCount;
+	int InstanceNumber;
+
+	CTestObject() :
+		InstanceNumber{ ++ObjectsCount }
+	{
+		std::cout << InstanceNumber << "th object is created: " << this << "." << std::endl;
+	}
+
+	~CTestObject()
+	{
+		std::cout << InstanceNumber << "th object is destroyed: " << this << "." << std::endl;
+	}
+};
+
+int CTestObject::ObjectsCount = 0;
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void FailingFunction()
+{
+	CTestObject object{};
+	std::cout << "ET_Exception is raised." << std::endl;
+	Throw( ET_Exception );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+//void FailingFunction()
+//{
+//	CTestObject object{};
+//	std::cout << "ET_Exception is raised." << std::endl;
+//	Throw( ET_Exception );
+//}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+//void FailingFunction()
+//{
+//	CTestObject object{};
+//	std::cout << "ET_Exception is raised." << std::endl;
+//	Throw( ET_Exception );
+//}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 int main()
 {
 	//CheckAll();
 
 	Try(
-		std::cout << ":)" << std::endl;
-		Throw( ET_Exception );
-	) Catch ( ET_Exception,
-		std::cout << ":(" << std::endl;
+		FailingFunction();
+	) Catch ( ET_OverflowError,
+		std::cout << "ET_OverflowError is caught." << std::endl;
+	) Catch( ET_Exception,
+		std::cout << "ET_Exception is caught." << std::endl;
+	) Catch( ET_BadException,
+		std::cout << "ET_BadException is caught." << std::endl;
 	) Finally (
-		std::cout << ":|" << std::endl;
-	)
-	
-	Try (
-		std::cout << "try" << std::endl;
-		Try (
-			std::cout << "nested try" << std::endl;
-			Throw( ET_BadWeakPtr );
-		) Catch ( ET_InvalidArgument,
-			std::cout << "nested catch InvalidArgument" << std::endl;
-		) Catch ( ET_BadWeakPtr,
-			std::cout << "nested catch BadWeakPtr" << std::endl;
-			Throw( ET_InvalidArgument );
-		) Catch ( ET_SystemError,
-			std::cout << "nested catch SystemError" << std::endl;
-		) Finally (
-			std::cout << "nested finally" << std::endl;
-		)
-	) Catch ( ET_InvalidArgument,
-		std::cout << "catch InvalidArgument" << std::endl;
-	) Finally (
-		std::cout << "finally" << std::endl;
+		std::cout << "All objects are destroyed." << std::endl;
 	)
 
 	return 0;

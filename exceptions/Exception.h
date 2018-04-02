@@ -1,11 +1,11 @@
 #pragma once
 
 #include <csetjmp>
-#include <iostream>
 #include <memory>
 #include <unordered_set>
 
 class CThrowHandler;
+
 extern std::unique_ptr<CThrowHandler> topThrowHandler;
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -41,32 +41,40 @@ enum TExceptionType : int {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-class CManagedObject {
-public:
-	std::shared_ptr<CManagedObject> prevObject{ nullptr };
-
-	CManagedObject();
-	~CManagedObject() = default;
-};
-
-//---------------------------------------------------------------------------------------------------------------------
+class CManagedObject;
 
 class CThrowHandler {
 public:
 	std::jmp_buf JumpBuffer{};
-	std::unique_ptr<CThrowHandler> prevHandler{ nullptr };
-	std::unique_ptr<CThrowHandler> nextHandler{ nullptr };
-	std::unordered_set<std::unique_ptr<CManagedObject>> objects{};
+	std::unique_ptr<CThrowHandler> PrevHandler{ nullptr };
+	std::unique_ptr<CThrowHandler> NextHandler{ nullptr };
+	std::unordered_set<std::unique_ptr<CManagedObject>> Objects{};
 
-	CThrowHandler( std::unique_ptr<CThrowHandler>&& _prevHandler = nullptr );
+	CThrowHandler( std::unique_ptr<CThrowHandler>&& prevHandler = nullptr ) :
+		PrevHandler{ std::move( prevHandler ) }
+	{
+	}
+
 	~CThrowHandler() = default;
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
+class CManagedObject {
+public:
+	CManagedObject()
+	{
+		topThrowHandler->Objects.insert( std::move( std::unique_ptr<CManagedObject>( this ) ) );
+	}
+
+	~CManagedObject() = default;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
 #define Try( tryBlock ) { \
 	topThrowHandler = std::make_unique<CThrowHandler>( std::move( topThrowHandler ) ); \
-	switch(  setjmp( topThrowHandler->JumpBuffer ) ) { \
+	switch( setjmp( topThrowHandler->JumpBuffer ) ) { \
 		case 0: \
 		{ \
 			tryBlock; \
@@ -90,14 +98,15 @@ public:
 }
 
 #define Throw( exceptionType ) { \
-	if( topThrowHandler->prevHandler == nullptr ) { \
+	if( topThrowHandler->PrevHandler == nullptr ) { \
 		std::terminate(); \
 	} \
 	\
-	auto prevHandler = std::move( topThrowHandler->prevHandler ); \
+	auto prevHandler = std::move( topThrowHandler->PrevHandler ); \
 	auto handler = std::move( topThrowHandler ); \
+	handler->Objects.clear(); \
 	topThrowHandler = std::move( prevHandler ); \
-	topThrowHandler->nextHandler = std::move( handler ); \
+	topThrowHandler->NextHandler = std::move( handler ); \
 	\
-	std::longjmp( topThrowHandler->nextHandler->JumpBuffer, exceptionType ); \
+	std::longjmp( topThrowHandler->NextHandler->JumpBuffer, exceptionType ); \
 }

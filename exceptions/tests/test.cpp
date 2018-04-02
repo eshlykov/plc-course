@@ -16,7 +16,7 @@ public:
 
 bool CDestructorCallTestClass::DestructrorNotCalled = true;
 
-TEST( NoDefaultExceptions, DestructrorNotCalled ) {
+TEST( DefaultThrow, NoDestructorCall ) {
 	try {
 		CDestructorCallTestClass sample;
 		throw std::runtime_error( "" );
@@ -28,7 +28,7 @@ TEST( NoDefaultExceptions, DestructrorNotCalled ) {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TEST( CatchingExceptions, TestThrowAndCatch )
+TEST( Catching, ThrowAndCatch )
 {
 	bool isExceptuonThrown = true;
 	bool isExceptionCaught = false;
@@ -47,7 +47,7 @@ TEST( CatchingExceptions, TestThrowAndCatch )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TEST( CatchingExceptions, TestFinally )
+TEST( Catching, TestFinally )
 {
 	bool isFinallyRun = false;
 
@@ -63,7 +63,7 @@ TEST( CatchingExceptions, TestFinally )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TEST( CatchingExceptions, TestTyping )
+TEST( Catching, TypingExceotion )
 {
 	bool isExceptionCaught = false;
 	bool isOutOfRangeCaught = false;
@@ -87,7 +87,7 @@ TEST( CatchingExceptions, TestTyping )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TEST( CatchingExceptions, TestNestedCatch )
+TEST( Catching, NestedCatch )
 {
 	bool isOutOfRangeCaugth = false;
 	bool isNestedOutOfRangeCaught = false;
@@ -110,7 +110,7 @@ TEST( CatchingExceptions, TestNestedCatch )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TEST( CatchingExceptions, TestNestedThrow )
+TEST( Catching, NestedThrow )
 {
 	bool isOverflowErroCaught = false;
 
@@ -131,7 +131,7 @@ TEST( CatchingExceptions, TestNestedThrow )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TEST( CatchingExceptions, TestSeveralTryBlocks )
+TEST( Catching, SeveralTryBlocks )
 {
 	bool isOverflowErroCaught = false;
 	bool isOutOfRangeCaugth = false;
@@ -236,23 +236,41 @@ TEST( Jumping, FailingCatchingFunction )
 
 class CTestObject : private CManagedObject {
 public:
-	static int ObjectsCount;
+	static int ConstructorCallsCount;
+	static int CopyConstructorCallsCount; 
+	static int DestructorCallsCount;
 
 	CTestObject()
 	{
-		++ObjectsCount;
+		++ConstructorCallsCount;
+	}
+
+	CTestObject( const CTestObject& )
+	{
+		++CopyConstructorCallsCount;
 	}
 
 	~CTestObject()
 	{
-		--ObjectsCount;
+		++DestructorCallsCount;
 	}
 };
 
-int CTestObject::ObjectsCount = 0;
+int CTestObject::ConstructorCallsCount = 0;
+int CTestObject::CopyConstructorCallsCount = 0;
+int CTestObject::DestructorCallsCount = 0;
 
-TEST( Clearing, DestructorCalling )
+void ClearTestObjectCounters()
 {
+	CTestObject::ConstructorCallsCount = 0;
+	CTestObject::CopyConstructorCallsCount = 0;
+	CTestObject::DestructorCallsCount = 0;
+}
+
+TEST( Clearing, DestructorCall )
+{
+	ClearTestObjectCounters();
+
 	Try(
 		CTestObject object{};
 		Throw( ET_Exception );
@@ -260,20 +278,70 @@ TEST( Clearing, DestructorCalling )
 	) Finally(
 	)
 
-	EXPECT_EQ( CTestObject::ObjectsCount, 0 );
+	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
+	EXPECT_EQ( CTestObject::DestructorCallsCount, 1 );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TEST( Clearing, NoExtraDestructorCalling )
+TEST( Clearing, NoDestructorExtraCall )
 {
+	ClearTestObjectCounters();
+
 	CTestObject object{};
+
 	Try(
-		CTestObject object{};
 		Throw( ET_Exception );
 	) Catch ( ET_Exception,
 	) Finally (
 	)
 
-	EXPECT_EQ( CTestObject::ObjectsCount, 1 );
+	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
+	EXPECT_EQ( CTestObject::DestructorCallsCount, 0 );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void CreateObjectAndFail()
+{
+	CTestObject objets{};
+	Throw( ET_Exception );
+}
+
+TEST( Clearing, ObjectInFunction )
+{
+	ClearTestObjectCounters();
+
+	Try(
+		CreateObjectAndFail();
+	) Catch ( ET_Exception,
+	) Finally (
+	)
+
+	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
+	EXPECT_EQ( CTestObject::DestructorCallsCount, 1 );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TakeObjectCopyAndFail( CTestObject object )
+{
+	Throw( ET_Exception );
+}
+
+TEST( Clearing, ObjectCopyInParameters )
+{
+	ClearTestObjectCounters();
+
+	CTestObject object{};
+
+	Try(
+		TakeObjectCopyAndFail( object );
+	) Catch ( ET_Exception,
+	) Finally (
+	)
+
+	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
+	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
+	EXPECT_EQ( CTestObject::DestructorCallsCount, 1 );
 }

@@ -342,6 +342,6 @@ TEST( Clearing, ObjectCopyInParameters )
 	)
 
 	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
-	EXPECT_EQ( CTestObject::ConstructorCallsCount, 1 );
+	EXPECT_EQ( CTestObject::CopyConstructorCallsCount, 1 );
 	EXPECT_EQ( CTestObject::DestructorCallsCount, 1 );
 }

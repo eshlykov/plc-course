@@ -18,14 +18,8 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DestructorCallTests.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DestructorCallTests.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>

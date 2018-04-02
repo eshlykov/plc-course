@@ -166,6 +166,74 @@ TEST( CatchingExceptions, TestSeveralTryBlocks )
 
 //---------------------------------------------------------------------------------------------------------------------
 
+void FailingFunction()
+{
+	Throw( ET_Exception );
+}
+
+TEST( Jumping, FailingFunction )
+{
+	bool isExceptionCaight = false;
+
+	Try (
+		FailingFunction();
+	) Catch ( ET_Exception,
+		isExceptionCaight = true;
+	) Finally (
+	)
+
+	EXPECT_TRUE( isExceptionCaight );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void CatchingFunction()
+{
+	bool isExceptionCaight = false;
+
+	Try (
+		FailingFunction();
+	) Catch ( ET_Exception,
+		isExceptionCaight = true;
+	) Finally (
+	)
+
+	EXPECT_TRUE( isExceptionCaight );
+}
+
+TEST( Jumping, CatchingFunction )
+{
+	CatchingFunction();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void FailingCatchingFunction()
+{
+	Try(
+		FailingFunction();
+	) Catch ( ET_Exception,
+		Throw( ET_Exception );
+	) Finally (
+	)
+}
+
+TEST( Jumping, FailingCatchingFunction )
+{
+	bool isExceptionCaught = false;
+
+	Try(
+		FailingCatchingFunction();
+	) Catch( ET_Exception,
+		isExceptionCaught = true;
+	) Finally (
+	)
+
+	EXPECT_TRUE( isExceptionCaught );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 class CTestObject : private CManagedObject {
 public:
 	static int ObjectsCount;
@@ -188,9 +256,24 @@ TEST( Clearing, DestructorCalling )
 	Try(
 		CTestObject object{};
 		Throw( ET_Exception );
+	) Catch( ET_Exception,
+	) Finally(
+	)
+
+	EXPECT_EQ( CTestObject::ObjectsCount, 0 );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+TEST( Clearing, NoExtraDestructorCalling )
+{
+	CTestObject object{};
+	Try(
+		CTestObject object{};
+		Throw( ET_Exception );
 	) Catch ( ET_Exception,
 	) Finally (
 	)
 
-	EXPECT_EQ( CTestObject::ObjectsCount, 0 );
+	EXPECT_EQ( CTestObject::ObjectsCount, 1 );
 }

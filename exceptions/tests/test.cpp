@@ -166,6 +166,33 @@ TEST( Catching, SeveralTryBlocks )
 
 //---------------------------------------------------------------------------------------------------------------------
 
+TEST( Catching, NoAppropriateCatch )
+{
+	bool isExceptionCaught = false;
+	bool isOutOfRangeCaugth = false;
+	bool isNestedFinallyRun = false;
+
+	Try (
+		Try (
+			Throw( ET_Exception)
+		) Catch ( ET_OutOfRange,
+			isOutOfRangeCaugth = true;
+		) Finally (
+			isNestedFinallyRun = true;
+		)
+	) Catch ( ET_Exception,
+		isExceptionCaught = true;
+	) Finally (
+	)
+
+	EXPECT_TRUE( isExceptionCaught );
+	EXPECT_FALSE( isOutOfRangeCaugth );
+	EXPECT_FALSE( isNestedFinallyRun );
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 void FailingFunction()
 {
 	Throw( ET_Exception );

@@ -90,7 +90,8 @@ CManagedObject::CManagedObject()
 
 #define Try( tryBlock ) { \
 	topThrowHandler = std::make_unique<CThrowHandler>( std::move( topThrowHandler ) ); \
-	switch( setjmp( topThrowHandler->JumpBuffer ) ) { \
+	int returnCode = setjmp( topThrowHandler->JumpBuffer ); \
+	switch( returnCode ) { \
 		case 0: \
 		{ \
 			tryBlock; \
@@ -106,6 +107,7 @@ CManagedObject::CManagedObject()
 
 #define Finally( finallyBlock ) \
 		default: \
+			Throw( returnCode ); \
 			break; \
 	} \
 	{ \

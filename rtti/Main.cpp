@@ -9,14 +9,14 @@ class A {
 class B {
 };
 
-Class( CClass ) Extends( A ) Extends( B )  {
+ClassExtends( C, A, B ) {
 public:
-	int cc = 17;
+	int c = 17;
 };
 
 int main()
 {
-	CClass c;
+	C c;
 	auto typeinfo = TypeId( c );
 	std::cout << typeinfo.Name << " " << typeinfo.HashCode << std::endl;
 	return 0;

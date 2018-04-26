@@ -3,16 +3,21 @@
 #include <iostream>
 #include <string>
 
-class A {
+Class( A ) {
+	int ccc;
 };
 
-class B {
+Class( B ) {
+	int ccccc;
 };
 
-ClassExtends( C, A, B ) {
-public:
+ClassExtends( C, A ) {
 	int c = 17;
 };
+
+EnableCast( A );
+EnableCast( B );
+EnableCast( C );
 
 int main()
 {

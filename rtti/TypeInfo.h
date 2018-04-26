@@ -72,7 +72,7 @@ std::string GetClassName( std::istringstream& stream, const std::string& prefix 
 
 std::vector<std::string> ExtractClassNamesList( std::string text )
 {
-	std::istringstream stream{ "CTypeIdentificator<>," + text };
+	std::istringstream stream{ text };
 	std::vector<std::string> words{};
 	std::string word;
 	std::string className = "";
@@ -101,29 +101,56 @@ std::vector<std::string> ExtractClassNamesList( std::string text )
 //----------------------------------------------------------------------------------------------------------------------
 
 std::unordered_map<std::string, int> ClassSizes;
-std::unordered_map<std::string, std::vector<std::string>> ClassTrees;
+std::unordered_map<std::string, std::vector<std::string>> ClassParents;
+std::unordered_map<std::string, std::vector<std::string>> ClassChildren;
 
-void* AddTree( std::string derivedClassName, std::string baseClasses )
+void* UpdateTree( std::string child, std::string parents = "" )
 {
-	ClassTrees[derivedClassName] = ExtractClassNamesList( baseClasses );
+	ClassParents[child] = ExtractClassNamesList( parents );
+	for( const auto& parent : ClassParents[child] ) {
+		ClassChildren[parent].push_back( child );
+	}
 	return nullptr;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+bool IsCastable( std::string from, std::string to )
+{
+	return true;
+}
+
 int CountShift( std::string from, std::string to )
 {
-	return 0;
+	int shift = sizeof( CTypeId );
+	for( const auto& parent : ClassParents[from] ) {
+		if( parent == to ) {
+			break;
+		}
+		shift += ClassSizes[parent];
+	}
+	return shift;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+#define Class( Class ) \
+extern const char Class##Name[] = #Class; \
+void* Class##Tree = UpdateTree( #Class ); \
+class Class : public CTypeIdentificator<Class##Name>
+
 #define ClassExtends( Class, ... ) \
 extern const char Class##Name[] = #Class; \
-void* Class##Tree = AddTree( #Class, #__VA_ARGS__ ); \
-\
+void* Class##Tree = UpdateTree( #Class, #__VA_ARGS__ ); \
 class Class : public CTypeIdentificator<Class##Name>, __VA_ARGS__
+
+#define EnableRTTI( Class ) \
+const CTypeId TypeId{ #Class, std::hash<std::string>{}( #Class ) };\
+const void* Class##Size = []{ \
+	ClassSizes[#Class] = sizeof( Class ); \
+	return nullptr; \
+}();
 
 #define TypeId( object ) object.TypeId
 
-#define DynamicCast( Type, Ptr ) static_cast<Type>( Ptr + CountShift( TypeId( *Ptr ).Name, #Type ) )
+#define DynamicCast( Type, Ptr ) ( IsCastable( TypeId( *Ptr ).Name, #Type ) ? static_cast<Type>( Ptr + CountShift( TypeId( *Ptr ).Name, #Type ) ) : nullptr )

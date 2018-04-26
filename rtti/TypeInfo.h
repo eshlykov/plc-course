@@ -25,14 +25,6 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template <char const* className>
-class CTypeIdentificator {
-public:
-	const CTypeId TypeId{ className, std::hash<std::string>{}( className ) };
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 std::unordered_set<char> openBracket{ '(', '[', '{', '<' };
 std::unordered_set<char> closeBracket{ ')', ']', '}', '>' };
 
@@ -135,14 +127,12 @@ int CountShift( std::string from, std::string to )
 //----------------------------------------------------------------------------------------------------------------------
 
 #define Class( Class ) \
-extern const char Class##Name[] = #Class; \
 void* Class##Tree = UpdateTree( #Class ); \
-class Class : public CTypeIdentificator<Class##Name>
+class Class
 
 #define ClassExtends( Class, ... ) \
-extern const char Class##Name[] = #Class; \
 void* Class##Tree = UpdateTree( #Class, #__VA_ARGS__ ); \
-class Class : public CTypeIdentificator<Class##Name>, __VA_ARGS__
+class Class : __VA_ARGS__
 
 #define EnableRTTI( Class ) \
 const CTypeId TypeId{ #Class, std::hash<std::string>{}( #Class ) };\

@@ -4,20 +4,22 @@
 #include <string>
 
 Class( A ) {
+public:
+	EnableRTTI( A );
 	int ccc;
 };
 
 Class( B ) {
+public:
+	EnableRTTI( B );
 	int ccccc;
 };
 
-ClassExtends( C, A ) {
+ClassExtends( C, A, B ) {
+public:
+	EnableRTTI( C );
 	int c = 17;
 };
-
-EnableCast( A );
-EnableCast( B );
-EnableCast( C );
 
 int main()
 {

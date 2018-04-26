@@ -46,9 +46,9 @@ class E : virtual T;
 class F : virtual T, D;
 class G : virtual T, E, F;
 class I : virtual T;
-class J : virutal T : I;
-class H : virutal T : J;
-class L : virutal T : C, G, H;
+class J : virtual T : I;
+class H : virtual T : J;
+class L : virtual T : C, G, H;
 ```
 Тогда классы будут лежать в памяти вот в таком порядке: `ABCDEFGHIJHLT`. Общий виртуальный родительский класс `T` самый последний. Именно поэтому мы не учитываем для сдвига размер `CTypeIdStorage`, а для нахождения сдвига годится простой обход по дереву.
 

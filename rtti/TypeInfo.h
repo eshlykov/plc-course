@@ -78,15 +78,11 @@ std::vector<std::string> ExtractClassNamesList( std::string text )
 //----------------------------------------------------------------------------------------------------------------------
 
 std::unordered_map<std::string, std::size_t> ClassSizes;
-std::unordered_map<std::string, std::vector<std::string>> ClassChildren;
+std::unordered_map<std::string, std::vector<std::string>> ClassParents;
 
 void* UpdateTree( std::string child, std::string parents = "" )
 {
-	//auto parentsList = ExtractClassNamesList( parents );
-	ClassChildren[child] = ExtractClassNamesList( parents );
-	//for( const auto& parent : parentsList ) {
-		//ClassChildren[child].push_back( parent );
-	//}
+	ClassParents[child] = ExtractClassNamesList( parents );
 	return nullptr;
 }
 
@@ -108,7 +104,7 @@ bool IsCastable( std::string base, std::string target )
 		return false;
 	}
 
-	for( const auto& child : ClassChildren[base] ) {
+	for( const auto& child : ClassParents[base] ) {
 		if( child == target || IsCastable( child, target ) ) {
 			return true;
 		}
@@ -120,7 +116,7 @@ bool IsCastable( std::string base, std::string target )
 std::size_t CountShift( std::string base, std::string target )
 {
 	std::size_t shift = 0;
-	for( const auto& child : ClassChildren[base] ) {
+	for( const auto& child : ClassParents[base] ) {
 		if( child == target ) {
 			return shift;
 		} else if ( IsCastable( child, target ) ) {

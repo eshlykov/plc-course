@@ -9,7 +9,6 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <iostream>
 
 class CTypeId {
 public:
@@ -120,7 +119,7 @@ bool IsCastable( std::string base, std::string target )
 
 std::size_t CountShift( std::string base, std::string target )
 {
-	std::size_t shift = sizeof( CTypeIdStorage );
+	std::size_t shift = 0;
 	for( const auto& child : ClassChildren[base] ) {
 		if( child == target ) {
 			return shift;
@@ -146,7 +145,7 @@ class Class : virtual public CTypeIdStorage, __VA_ARGS__
 #define EnableRTTI( Class ) \
 void* Class##RTTI = [this]{ \
 	TypeId = CTypeId{ #Class, std::hash<std::string>{}( #Class ) };\
-	ClassSizes[#Class] = sizeof( Class ); \
+	ClassSizes[#Class] = sizeof( Class ) - sizeof( CTypeIdStorage ); \
 	return nullptr; \
 }();
 

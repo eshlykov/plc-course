@@ -10,16 +10,13 @@ class CPromise;
 
 template<class T>
 class CFuture {
-	friend CPromise<T>;
-
 public:
-	CFuture() = default;
-	CFuture( CFuture<T>&& other );
-
 	T& Get();
 	bool TryGet( T& result );
 
 private:
+	friend CPromise<T>;
+
 	enum T_FutureState : int {
 		FS_Waiting,
 		FS_HasValue,
@@ -52,16 +49,9 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 template<class T>
-CFuture<T>::CFuture( CFuture<T>&& other )
-{
-	value = std::move( other.value );
-	state = other.state;
-}
-
-template<class T>
 T& CFuture<T>::Get()
 {
-	std::unique_lock<std::mutex> lock;
+	std::unique_lock<std::mutex> lock( mutex );
 	isFinished.wait( lock, [&] { return state != FS_Waiting; } );
 	if( state == FS_HasException ) {
 		throw exception;
@@ -110,7 +100,7 @@ CFuture<T>& CPromise<T>::GetFuture()
 }
 
 template<class T>
-void CPromise<T>::SetValue( T && value )
+void CPromise<T>::SetValue( T&& value )
 {
 	future.setValue( std::move( value ) );
 }

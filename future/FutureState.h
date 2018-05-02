@@ -6,7 +6,7 @@
 #include <thread>
 #include <vector>
 
-enum T_FutureState : int {
+enum TFutureState : int {
 	FS_Waiting,
 	FS_HasValue,
 	FS_HasException,
@@ -28,7 +28,7 @@ public:
 	~CFutureState();
 
 private:
-	T_FutureState state{ FS_Waiting };
+	TFutureState state{ FS_Waiting };
 	T value{};
 	std::exception exception{};
 	std::vector<std::thread> threads{};

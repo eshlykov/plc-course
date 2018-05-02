@@ -126,9 +126,12 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Async.h" />
+    <ClInclude Include="BlockingQueue.h" />
     <ClInclude Include="Future.h" />
     <ClInclude Include="FutureState.h" />
     <ClInclude Include="Promise.h" />
+    <ClInclude Include="ThreadPool.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

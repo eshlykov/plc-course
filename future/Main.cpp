@@ -1,3 +1,5 @@
+#include "Async.h"
+#include "Future.h"
 #include "Promise.h"
 
 #include <array>
@@ -12,8 +14,11 @@ void Accumulate( std::vector<int>::iterator first, std::vector<int>::iterator la
 	promise.SetValue( std::move( sum ) );
 }
 
+CThreadPool<int> CAsync<int>::pool{ 4 };
+
 int main()
 {
+
 	std::vector<int> numbers;
 	for( int i = 0; i < 100; ++i ) {
 		numbers.emplace_back( i );

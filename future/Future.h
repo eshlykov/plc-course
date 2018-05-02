@@ -1,6 +1,8 @@
 #pragma once
 
 #include "FutureState.h"
+#include "Promise.h"
+#include "ThreadPool.h"
 
 #include <algorithm>
 #include <functional>

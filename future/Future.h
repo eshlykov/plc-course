@@ -1,7 +1,9 @@
 #pragma once
 
-#include <atomic>
+#include "FutureState.h"
+
 #include <exception>
+#include <memory>
 #include <mutex>
 #include <condition_variable>
 
@@ -11,21 +13,18 @@ class CPromise;
 template<class T>
 class CFuture {
 public:
+	CFuture() = default;
+
+	CFuture( const CFuture<T>& other );
+	CFuture( CFuture<T>&& other );
+
 	T& Get();
 	bool TryGet( T& result );
 
 private:
 	friend CPromise<T>;
 
-	enum T_FutureState : int {
-		FS_Waiting,
-		FS_HasValue,
-		FS_HasException,
-	};
-
-	T value{};
-	std::exception exception{};
-	T_FutureState state{ FS_Waiting };
+	std::shared_ptr<CFutureState<T>> data{ new CFutureState<T>{} };
 	std::mutex mutex{};
 	std::condition_variable isFinished{};
 
@@ -36,39 +35,38 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 template<class T>
-class CPromise {
-public:
-	CFuture<T>& GetFuture();
-	void SetValue( T&& value );
-	void SetException( const std::exception& exception );
+CFuture<T>::CFuture( const CFuture<T>& other )
+{
+	data = other.data;
+}
 
-private:
-	CFuture<T> future{};
-};
-
-//----------------------------------------------------------------------------------------------------------------------
+template<class T>
+CFuture<T>::CFuture( CFuture<T>&& other )
+{
+	data = std::move( other.data );
+}
 
 template<class T>
 T& CFuture<T>::Get()
 {
 	std::unique_lock<std::mutex> lock( mutex );
-	isFinished.wait( lock, [&] { return state != FS_Waiting; } );
-	if( state == FS_HasException ) {
-		throw exception;
+	isFinished.wait( lock, [&] { return data->state != FS_Waiting; } );
+	if( data->state == FS_HasException ) {
+		throw data->exception;
 	}
-	return value;
+	return data->value;
 }
 
 template<class T>
 bool CFuture<T>::TryGet( T& result )
 {
 	std::lock_guard<std::mutex> lock( mutex );
-	if( state == FS_HasValue ) {
-		result = value;
+	if( data->state == FS_HasValue ) {
+		result = data->value;
 		return false;
 	}
-	if( state == FS_HasException ) {
-		throw exception;
+	if( data->state == FS_HasException ) {
+		throw data->exception;
 	}
 	return false;
 }
@@ -77,8 +75,8 @@ template<class T>
 void CFuture<T>::setValue( T&& _value )
 {
 	std::lock_guard<std::mutex> lock( mutex );
-	value = std::move( _value );
-	state = FS_HasValue;
+	data->value = std::move( _value );
+	data->state = FS_HasValue;
 	isFinished.notify_one();
 }
 
@@ -86,27 +84,7 @@ template<class T>
 void CFuture<T>::setException( const std::exception& _exception )
 {
 	std::lock_guard<std::mutex> lock( mutex );
-	exception = _exception;
-	state = FS_HasException;
+	data->exception = _exception;
+	data->state = FS_HasException;
 	isFinished.notify_one();
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-template<class T>
-CFuture<T>& CPromise<T>::GetFuture()
-{
-	return future;
-}
-
-template<class T>
-void CPromise<T>::SetValue( T&& value )
-{
-	future.setValue( std::move( value ) );
-}
-
-template<class T>
-void CPromise<T>::SetException( const std::exception& exception )
-{
-	future.setException( exception );
 }

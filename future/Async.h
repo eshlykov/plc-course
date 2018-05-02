@@ -29,10 +29,10 @@ CFuture<T> CAsync<T>::Async( const TAsyncType type, std::function<T()> function 
 		return pool.Submit( function );
 	}
 
-	CPromise promise{};
+	CPromise<T> promise{};
 	auto future = promise.GetFuture();
 	try {
-		promise.setValue( function() );
+		promise.SetValue( function() );
 	} catch( std::exception& exception ) {
 		promise.SetException( exception );
 	}

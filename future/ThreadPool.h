@@ -3,6 +3,7 @@
 #include "BlockingQueue.h"
 #include "Future.h"
 
+#include <atomic>
 #include <functional>
 #include <mutex>
 #include <vector>
@@ -15,16 +16,16 @@ class CThreadPool {
 	};
 
 public:
-	explicit CThreadPool( const int _threadCount );
+	explicit CThreadPool( const int _workersCount );
 	~CThreadPool();
 
 	CFuture<T> Submit( std::function<T()> function );
 	void DoTask();
-	bool HasFreeWorkers() const;
+	bool HasFreeWorkers();
 
 private:
-	int threadCount{ 0 };
-	int workingThreads{ 0 };
+	int workersCount{ 0 };
+	std::atomic<int> busyWorkersCount{ 0 };
 	CBlockingQueue<std::function<void()>> queue{};
 	std::vector<std::thread> workers{};
 	std::mutex mutex{};
@@ -41,10 +42,10 @@ CThreadPool<T>::CThreadPoolClosed::CThreadPoolClosed() :
 //----------------------------------------------------------------------------------------------------------------------
 
 template<class T>
-CThreadPool<T>::CThreadPool( const int _threadCount ) :
-	threadCount{ _threadCount }
+CThreadPool<T>::CThreadPool( const int _workersCount ) :
+	workersCount{ _workersCount }
 {
-	for( int i = 0; i < threadCount; ++i ) {
+	for( int i = 0; i < workersCount; ++i ) {
 		workers.emplace_back( &CThreadPool<T>::DoTask, this );
 	}
 }
@@ -52,18 +53,16 @@ CThreadPool<T>::CThreadPool( const int _threadCount ) :
 template<class T>
 CThreadPool<T>::~CThreadPool()
 {
-	for( int i = 0; i < threadCount; ++i ) {
+	for( int i = 0; i < workersCount; ++i ) {
 		queue.Produce( [] { throw CThreadPoolClosed{}; } );
 	}
-	for( auto& worker : workers ) {
-		worker.join();
-	}
+	std::for_each( workers.begin(), workers.end(), [] ( auto& worker ) { worker.join(); } );
 }
 
 template<class T>
 CFuture<T> CThreadPool<T>::Submit( std::function<T()> function )
 {
-	std::unique_lock<std::mutex> lock( mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	CPromise<T> promise{};
 	auto future = promise.GetFuture();
 	queue.Produce( [promise, function] () mutable {
@@ -82,19 +81,19 @@ void CThreadPool<T>::DoTask()
 	while( true ) {
 		std::function<void()> task{};
 		queue.Consume( task );
-		++workingThreads;
+		++busyWorkersCount;
 		try {
 			task();
 		} catch( const CThreadPoolClosed& exception ) {
+			// Don't decrement busyWorkersCount because removed workers is not free actually.
 			break;
 		}
-		--workingThreads;
+		--busyWorkersCount;
 	}
 }
 
 template<class T>
-bool CThreadPool<T>::HasFreeWorkers() const
+bool CThreadPool<T>::HasFreeWorkers()
 {
-	std::unique_lock<std::mutex> lock( mutex );
-	return workingThreads < threadCount;
+	return busyWorkersCount < workersCount;
 }

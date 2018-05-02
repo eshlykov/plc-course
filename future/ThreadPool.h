@@ -38,6 +38,8 @@ CThreadPool<T>::CThreadPoolClosed::CThreadPoolClosed() :
 {
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 template<class T>
 CThreadPool<T>::CThreadPool( const int _threadCount ) :
 	threadCount{ _threadCount }

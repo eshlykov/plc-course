@@ -2,10 +2,9 @@
 
 #include "FutureState.h"
 
-#include <exception>
+#include <algorithm>
+#include <functional>
 #include <memory>
-#include <mutex>
-#include <condition_variable>
 
 template<class T>
 class CPromise;
@@ -20,16 +19,15 @@ public:
 
 	T& Get();
 	bool TryGet( T& result );
+	CFuture<T> Then( std::function<T( T )> function );
 
 private:
 	friend CPromise<T>;
 
 	std::shared_ptr<CFutureState<T>> data{ new CFutureState<T>{} };
-	std::mutex mutex{};
-	std::condition_variable isFinished{};
 
-	void setValue( T&& _value );
-	void setException( const std::exception& _exception );
+	void setValue( T&& value );
+	void setException( const std::exception& exception );
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -49,42 +47,57 @@ CFuture<T>::CFuture( CFuture<T>&& other )
 template<class T>
 T& CFuture<T>::Get()
 {
-	std::unique_lock<std::mutex> lock( mutex );
-	isFinished.wait( lock, [&] { return data->state != FS_Waiting; } );
-	if( data->state == FS_HasException ) {
-		throw data->exception;
+	std::unique_lock<std::mutex> lock( data->mutex );
+	data->isNotWaiting.wait( lock, [&] { return data->state != FS_Waiting; } );
+	if( data->state == FS_HasValue ) {
+		return data->value;
 	}
-	return data->value;
+	throw data->exception;
 }
 
 template<class T>
 bool CFuture<T>::TryGet( T& result )
 {
-	std::lock_guard<std::mutex> lock( mutex );
-	if( data->state == FS_HasValue ) {
-		result = data->value;
+	std::lock_guard<std::mutex> lock( data->mutex );
+	if( data->state == FS_Waiting ) {
 		return false;
+	} else if( data->state == FS_HasValue ) {
+		result = data->value;
+		return true;
 	}
-	if( data->state == FS_HasException ) {
-		throw data->exception;
-	}
-	return false;
+	throw data->exception;
 }
 
 template<class T>
-void CFuture<T>::setValue( T&& _value )
+CFuture<T> CFuture<T>::Then( std::function<T( T )> function )
 {
-	std::lock_guard<std::mutex> lock( mutex );
-	data->value = std::move( _value );
+	CPromise<T> promise{};
+	auto future = promise.GetFuture();
+	auto executable = [this, function] ( CPromise<T>&& promise ) {
+		try {
+			promise.SetValue( function( Get() ) );
+		} catch( const std::exception& exception ) {
+			promise.SetException( exception );
+		}
+	};
+	data->threads.emplace_back( executable, std::move( promise ) );
+	return future;
+}
+
+template<class T>
+void CFuture<T>::setValue( T&& value )
+{
+	std::lock_guard<std::mutex> lock( data->mutex );
+	data->value = std::move( value );
 	data->state = FS_HasValue;
-	isFinished.notify_one();
+	data->isNotWaiting.notify_one();
 }
 
 template<class T>
-void CFuture<T>::setException( const std::exception& _exception )
+void CFuture<T>::setException( const std::exception& exception )
 {
-	std::lock_guard<std::mutex> lock( mutex );
-	data->exception = _exception;
+	std::lock_guard<std::mutex> lock( data->mutex );
+	data->exception = exception;
 	data->state = FS_HasException;
-	isFinished.notify_one();
+	data->isNotWaiting.notify_all();
 }

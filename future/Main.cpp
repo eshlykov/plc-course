@@ -34,7 +34,8 @@ int main()
 
 	int sum = 0;
 	for( auto& future : futures ) {
-		sum += future.Get();
+		auto f = future.Then( [] ( int n ) { return n * n; } );
+		sum += f.Get();
 	}
 
 	std::cout << sum << std::endl;

@@ -1,6 +1,10 @@
 #pragma once
 
+#include <condition_variable>
 #include <exception>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 enum T_FutureState : int {
 	FS_Waiting,
@@ -21,10 +25,21 @@ class CFutureState {
 public:
 	CFutureState() = default;
 
+	~CFutureState();
+
 private:
 	T_FutureState state{ FS_Waiting };
 	T value{};
 	std::exception exception{};
+	std::vector<std::thread> threads{};
+	std::mutex mutex{};
+	std::condition_variable isNotWaiting{};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+template<class T>
+CFutureState<T>::~CFutureState()
+{
+	std::for_each( threads.begin(), threads.end(), [] ( auto& thread ) { thread.join(); } );
+}

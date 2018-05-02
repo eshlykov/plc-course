@@ -11,10 +11,10 @@ enum TAsyncType {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template<class T>
+template<class T, class ...A>
 class CAsync {
 public:
-	static CFuture<T> Async( const TAsyncType type, std::function<T()> function );
+	static CFuture<T> Async( const TAsyncType type, std::function<T(A...)> function, A... agruments );
 
 private:
 	static CThreadPool<T> pool;
@@ -22,17 +22,19 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template<class T>
-CFuture<T> CAsync<T>::Async( const TAsyncType type, std::function<T()> function )
+template<class T, class ...A>
+CFuture<T> CAsync<T, A...>::Async( const TAsyncType type, std::function<T(A...)> function, A... agruments )
 {
+	auto executable = std::bind( function, agruments... );
+
 	if( type == AT_Async && pool.HasFreeWorkers() ) {
-		return pool.Submit( function );
+		return pool.Submit( executable );
 	}
 
 	CPromise<T> promise{};
 	auto future = promise.GetFuture();
 	try {
-		promise.SetValue( function() );
+		promise.SetValue( executable() );
 	} catch( std::exception& exception ) {
 		promise.SetException( exception );
 	}

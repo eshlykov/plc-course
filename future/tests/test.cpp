@@ -88,10 +88,9 @@ CThreadPool<int> CAsync<int>::pool{ 4 };
 
 TEST( Async, GetAsyncValue )
 {
-	int expected = 42;
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int { return expected; } );
+	auto future = CAsync<int>::Async( AT_Async, [&] () -> int { return 42; } );
 
-	EXPECT_EQ( future.Get(), expected );
+	EXPECT_EQ( future.Get(), 42 );
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -315,14 +314,13 @@ TEST( Then, SavingValues )
 	std::function<int( int )> function = [] ( int number ) -> int { return -number; };
 	auto next = future.Then( function );
 
-	int expected = 42;
-	promise.SetValue( std::move( expected ) );
+	promise.SetValue( 42 );
 
 	auto futureResult = future.Get();
 	auto nextResult = next.Get();
 
-	EXPECT_EQ( futureResult, expected );
-	EXPECT_EQ( nextResult, function( expected ) );
+	EXPECT_EQ( futureResult, 42 );
+	EXPECT_EQ( nextResult, -42 );
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -334,11 +332,10 @@ TEST( Then, SavingWhenException )
 	std::function<int( int )> function = [&] ( int number ) -> int { throw std::runtime_error( "For test needs." ); };
 	auto next = future.Then( function );
 
-	int expected = 42;
-	promise.SetValue( std::move( expected ) );
+	promise.SetValue( 42 );
 
 	auto futureResult = future.Get();
-	EXPECT_EQ( futureResult, expected );
+	EXPECT_EQ( futureResult, 42 );
 
 	try {
 		next.Get();
@@ -384,12 +381,11 @@ TEST( Then, OtherType )
 	std::function<double( int )> function = [] ( int number ) -> double { return static_cast<double>( number ) / 5.0; };
 	auto next = future.Then( function );
 
-	int expected = 42;
-	promise.SetValue( std::move( expected ) );
+	promise.SetValue( 42 );
 
 	auto futureResult = future.Get();
 	auto nextResult = next.Get();
 
-	EXPECT_EQ( futureResult, expected );
-	EXPECT_EQ( nextResult, function( expected ) );
+	EXPECT_EQ( futureResult, 42 );
+	EXPECT_EQ( nextResult, function( 42 ) );
 }

@@ -4,6 +4,8 @@
 #include "Promise.h"
 #include "ThreadPool.h"
 
+#include <any>
+
 enum TAsyncType {
 	AT_Async,
 	AT_Sync
@@ -11,28 +13,27 @@ enum TAsyncType {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template<class T>
 class CAsync {
 public:
-	template<class ...A>
+	template<class T, class ...A>
 	static CFuture<T> Async( const TAsyncType type, std::function<T(A...)> function, A... agruments );
 
+	template<class T>
 	static CFuture<T> Async( const TAsyncType type, std::function<T()> function );
 
 private:
-	static CThreadPool<T> pool;
+	static CThreadPool<std::any> pool;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template<class T>
-template<class ...A>
-CFuture<T> CAsync<T>::Async( const TAsyncType type, std::function<T(A...)> function, A... agruments )
+template<class T, class ...A >
+CFuture<T> CAsync::Async( const TAsyncType type, std::function<T(A...)> function, A... agruments )
 {
 	auto executable = std::bind( function, agruments... );
 
 	if( type == AT_Async && pool.HasFreeWorkers() ) {
-		return pool.Submit( executable );
+		return pool.Submit( executable ).Then<T>( [] ( std::any value ) -> T { return std::any_cast<T>( value ); } );
 	}
 
 	CPromise<T> promise{};
@@ -48,10 +49,10 @@ CFuture<T> CAsync<T>::Async( const TAsyncType type, std::function<T(A...)> funct
 //----------------------------------------------------------------------------------------------------------------------
 
 template<class T>
-CFuture<T> CAsync<T>::Async( const TAsyncType type, std::function<T()> function )
+CFuture<T> CAsync::Async( const TAsyncType type, std::function<T()> function )
 {
 	if( type == AT_Async && pool.HasFreeWorkers() ) {
-		return pool.Submit( function );
+		return pool.Submit( function ).Then<T>( [] ( std::any value ) -> T { return std::any_cast<T>( value ); } );
 	}
 
 	CPromise<T> promise{};

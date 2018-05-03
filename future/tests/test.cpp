@@ -84,11 +84,11 @@ TEST( FuturePromise, TryGetException )
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CThreadPool<int> CAsync<int>::pool{ 4 };
+CThreadPool<std::any> CAsync::pool{ 4 };
 
 TEST( Async, GetAsyncValue )
 {
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int { return 42; } );
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int { return 42; } );
 
 	EXPECT_EQ( future.Get(), 42 );
 }
@@ -97,7 +97,7 @@ TEST( Async, GetAsyncValue )
 
 TEST( Async, GetAsyncException )
 {
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
 
 	try {
 		future.Get();
@@ -111,7 +111,7 @@ TEST( Async, GetAsyncException )
 
 TEST( Async, TryGetAsyncValue )
 {
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
 
 	try {
 		future.Get();
@@ -125,7 +125,7 @@ TEST( Async, TryGetAsyncValue )
 
 TEST( Async, TryGetAsyncWaiting )
 {
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int {
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int {
 		std::this_thread::sleep_for( 2s );
 		throw std::runtime_error( "For test needs." );
 	} );
@@ -147,7 +147,7 @@ TEST( Async, TryGetAsyncWaiting )
 
 TEST( Async, TryGetAsyncException )
 {
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
 
 	try {
 		int result;
@@ -167,7 +167,7 @@ TEST( Async, TryGetAsyncException )
 TEST( Async, TryGetSyncValue )
 {
 	auto start = std::chrono::high_resolution_clock::now();
-	auto future = CAsync<int>::Async( AT_Sync, [&] () -> int {
+	auto future = CAsync::Async<int>( AT_Sync, [&] () -> int {
 		std::this_thread::sleep_for( 2s );
 		return 42;
 	} );
@@ -193,7 +193,7 @@ TEST( Async, TryGetSyncException )
 	auto time = 2000ms;
 
 	auto start = std::chrono::high_resolution_clock::now();
-	auto future = CAsync<int>::Async( AT_Sync, [&] () -> int {
+	auto future = CAsync::Async<int>( AT_Sync, [&] () -> int {
 		std::this_thread::sleep_for( time );
 		throw std::runtime_error( "For test needs." );
 	} );
@@ -224,13 +224,13 @@ TEST( Async, NotOverloadedPool )
 	auto start = std::chrono::high_resolution_clock::now();
 
 	for( int i = 0; i < 3; ++i ) {
-		futures.push_back( CAsync<int>::Async( AT_Async, [&] () -> int {
+		futures.push_back( CAsync::Async<int>( AT_Async, [&] () -> int {
 			std::this_thread::sleep_for( 4s );
 			return 42;
 		} ) );
 	}
 
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int {
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int {
 		std::this_thread::sleep_for( 2s );
 		return 42;
 	} );
@@ -259,7 +259,7 @@ TEST( Async, OverloadedPool )
 	auto start = std::chrono::high_resolution_clock::now();
 
 	for( int i = 0; i < 4; ++i ) {
-		futures.push_back( CAsync<int>::Async( AT_Async, [&] () -> int {
+		futures.push_back( CAsync::Async<int>( AT_Async, [&] () -> int {
 			std::this_thread::sleep_for( 4s );
 			return 42;
 		} ) );
@@ -268,7 +268,7 @@ TEST( Async, OverloadedPool )
 	// Sleep in order to be sure that all tasks above were added to pool before the next task.
 	std::this_thread::sleep_for( 1s );
 
-	auto future = CAsync<int>::Async( AT_Async, [&] () -> int {
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int {
 		std::this_thread::sleep_for( 2s );
 		return 42;
 	} );
@@ -299,11 +299,10 @@ TEST( Async, OverloadedPool )
 
 TEST( Async, ManyArguments )
 {
-	auto future = CAsync<int>::Async<int, std::string>( AT_Async, [&] ( int number, std::string str ) -> int { return number + str.length(); }, 42, "Test string" );
+	auto future = CAsync::Async<int, int, std::string>( AT_Async, [&] ( int number, std::string str ) -> int { return number + str.length(); }, 42, "Test string" );
 
 	EXPECT_EQ( future.Get(), 42 + std::string{ "Test string" }.length() );
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

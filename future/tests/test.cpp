@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <exception>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -294,6 +295,16 @@ TEST( Async, OverloadedPool )
 		}
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+TEST( Async, ManyArguments )
+{
+	auto future = CAsync<int>::Async<int, std::string>( AT_Async, [&] ( int number, std::string str ) -> int { return number + str.length(); }, 42, "Test string" );
+
+	EXPECT_EQ( future.Get(), 42 + std::string{ "Test string" }.length() );
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

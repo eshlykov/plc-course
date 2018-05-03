@@ -11,10 +11,13 @@ enum TAsyncType {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template<class T, class ...A>
+template<class T>
 class CAsync {
 public:
+	template<class ...A>
 	static CFuture<T> Async( const TAsyncType type, std::function<T(A...)> function, A... agruments );
+
+	static CFuture<T> Async( const TAsyncType type, std::function<T()> function );
 
 private:
 	static CThreadPool<T> pool;
@@ -22,8 +25,9 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template<class T, class ...A>
-CFuture<T> CAsync<T, A...>::Async( const TAsyncType type, std::function<T(A...)> function, A... agruments )
+template<class T>
+template<class ...A>
+CFuture<T> CAsync<T>::Async( const TAsyncType type, std::function<T(A...)> function, A... agruments )
 {
 	auto executable = std::bind( function, agruments... );
 
@@ -35,6 +39,25 @@ CFuture<T> CAsync<T, A...>::Async( const TAsyncType type, std::function<T(A...)>
 	auto future = promise.GetFuture();
 	try {
 		promise.SetValue( executable() );
+	} catch( std::exception& exception ) {
+		promise.SetException( exception );
+	}
+	return future;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+template<class T>
+CFuture<T> CAsync<T>::Async( const TAsyncType type, std::function<T()> function )
+{
+	if( type == AT_Async && pool.HasFreeWorkers() ) {
+		return pool.Submit( function );
+	}
+
+	CPromise<T> promise{};
+	auto future = promise.GetFuture();
+	try {
+		promise.SetValue( function() );
 	} catch( std::exception& exception ) {
 		promise.SetException( exception );
 	}

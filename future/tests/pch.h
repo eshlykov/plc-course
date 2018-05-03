@@ -5,4 +5,6 @@
 
 #pragma once
 
+#define _HAS_TR1_NAMESPACE 1
+
 #include "gtest/gtest.h"

@@ -67,7 +67,7 @@ CFuture<T> CThreadPool<T>::Submit( std::function<T()> function )
 	auto future = promise.GetFuture();
 	queue.Produce( [promise, function] () mutable {
 		try {
-			promise.SetValue( std::move( function() ) );
+			promise.SetValue( function() );
 		} catch( const std::exception& exception ) {
 			promise.SetException( exception );
 		}

@@ -15,15 +15,12 @@ template<class T>
 class CFuture {
 public:
 	CFuture() = default;
-
 	CFuture( const CFuture<T>& other );
 	CFuture( CFuture<T>&& other );
 
-	T& Get();
+	T Get();
 	bool TryGet( T& result );
-
-	template<class U>
-	CFuture<U> Then( std::function<U( T )> function );
+	template<class U> CFuture<U> Then( std::function<U( T )> function );
 
 private:
 	friend CPromise<T>;
@@ -49,7 +46,7 @@ CFuture<T>::CFuture( CFuture<T>&& other )
 }
 
 template<class T>
-T& CFuture<T>::Get()
+T CFuture<T>::Get()
 {
 	std::unique_lock<std::mutex> lock( data->mutex );
 	data->isNotWaiting.wait( lock, [&] { return data->state != FS_Waiting; } );
@@ -77,16 +74,17 @@ template<class U>
 inline CFuture<U> CFuture<T>::Then( std::function<U( T )> function )
 {
 	CPromise<U> promise{};
-	auto future = promise.GetFuture();
-	auto executable = [this, function] ( CPromise<U>&& promise ) {
+	auto currentFuture = *this;
+	auto thenFuture = promise.GetFuture();
+	auto executable = [currentFuture, promise, function] () mutable {
 		try {
-			promise.SetValue( function( Get() ) );
+			promise.SetValue( function( currentFuture.Get() ) );
 		} catch( const std::exception& exception ) {
 			promise.SetException( exception );
 		}
 	};
-	data->threads.emplace_back( executable, std::move( promise ) );
-	return future;
+	data->threads.emplace_back( executable );
+	return thenFuture;
 }
 
 template<class T>

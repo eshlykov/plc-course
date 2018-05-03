@@ -363,3 +363,22 @@ TEST( Then, NotCallWhenException )
 		EXPECT_STREQ( exception.what(), "For test needs." );
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+TEST( Then, OtherType )
+{
+	CPromise<int> promise{};
+	auto future = promise.GetFuture();
+	std::function<double( int )> function = [] ( int number ) -> double { return static_cast<double>( number ) / 5.0; };
+	auto next = future.Then( function );
+
+	int expected = 42;
+	promise.SetValue( std::move( expected ) );
+
+	auto futureResult = future.Get();
+	auto nextResult = next.Get();
+
+	EXPECT_EQ( futureResult, expected );
+	EXPECT_EQ( nextResult, function( expected ) );
+}

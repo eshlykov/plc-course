@@ -21,7 +21,9 @@ public:
 
 	T& Get();
 	bool TryGet( T& result );
-	CFuture<T> Then( std::function<T( T )> function );
+
+	template<class U>
+	CFuture<U> Then( std::function<U( T )> function );
 
 private:
 	friend CPromise<T>;
@@ -71,11 +73,12 @@ bool CFuture<T>::TryGet( T& result )
 }
 
 template<class T>
-CFuture<T> CFuture<T>::Then( std::function<T( T )> function )
+template<class U>
+inline CFuture<U> CFuture<T>::Then( std::function<U( T )> function )
 {
-	CPromise<T> promise{};
+	CPromise<U> promise{};
 	auto future = promise.GetFuture();
-	auto executable = [this, function] ( CPromise<T>&& promise ) {
+	auto executable = [this, function] ( CPromise<U>&& promise ) {
 		try {
 			promise.SetValue( function( Get() ) );
 		} catch( const std::exception& exception ) {

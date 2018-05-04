@@ -126,6 +126,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Thread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Async.h" />
@@ -133,6 +134,7 @@
     <ClInclude Include="Future.h" />
     <ClInclude Include="FutureState.h" />
     <ClInclude Include="Promise.h" />
+    <ClInclude Include="Thread.h" />
     <ClInclude Include="ThreadPool.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

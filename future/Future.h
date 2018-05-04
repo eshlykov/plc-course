@@ -2,11 +2,12 @@
 
 #include "FutureState.h"
 #include "Promise.h"
-#include "ThreadPool.h"
+#include "Thread.h"
 
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <vector>
 
 template<class T>
 class CPromise;
@@ -26,6 +27,7 @@ private:
 	friend CPromise<T>;
 
 	std::shared_ptr<CFutureState<T>> data{ new CFutureState<T>{} };
+	inline static std::vector<CThread> workers{};
 
 	void setValue( T&& value );
 	void setException( const std::exception& exception );
@@ -83,7 +85,7 @@ inline CFuture<U> CFuture<T>::Then( std::function<U( T )> function )
 			promise.SetException( exception );
 		}
 	};
-	data->threads.emplace_back( executable );
+	workers.emplace_back( std::move( std::thread{ executable } ) );
 	return thenFuture;
 }
 

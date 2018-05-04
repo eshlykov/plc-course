@@ -18,29 +18,17 @@ enum TFutureState : int {
 template<class T>
 class CFuture;
 
-
 template<class T>
 class CFutureState {
-	friend CFuture<T>;
-
 public:
 	CFutureState() = default;
 
-	~CFutureState();
-
 private:
+	friend CFuture<T>;
+
 	TFutureState state{ FS_Waiting };
 	T value{};
 	std::exception exception{};
-	std::vector<std::thread> threads{};
 	std::mutex mutex{};
 	std::condition_variable isNotWaiting{};
 };
-
-//----------------------------------------------------------------------------------------------------------------------
-
-template<class T>
-CFutureState<T>::~CFutureState()
-{
-	std::for_each( threads.begin(), threads.end(), [] ( auto& thread ) { thread.join(); } );
-}

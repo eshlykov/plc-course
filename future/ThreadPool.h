@@ -84,7 +84,7 @@ void CThreadPool<T>::DoTask()
 		++busyWorkersCount;
 		try {
 			task();
-		} catch( const CThreadPoolClosed& exception ) {
+		} catch( const CThreadPoolClosed& ) {
 			// Don't decrement busyWorkersCount because removed workers is not free actually.
 			break;
 		}

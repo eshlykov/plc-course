@@ -111,13 +111,17 @@ TEST( Async, GetAsyncException )
 
 TEST( Async, TryGetAsyncValue )
 {
-	auto future = CAsync::Async<int>( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
+	auto future = CAsync::Async<int>( AT_Async, [&] () -> int { return 42; } );
+
+	std::this_thread::sleep_for( 2s ); // Waut to be sure that future is ready.
+
+	int result;
+	assert( future.TryGet( result ) );
+	assert( result == 42 );
 
 	try {
 		future.Get();
-		EXPECT_TRUE( false );
-	} catch( const std::exception& exception ) {
-		EXPECT_STREQ( exception.what(), "For test needs." );
+	} catch( ... ) {
 	}
 }
 
@@ -127,14 +131,14 @@ TEST( Async, TryGetAsyncWaiting )
 {
 	auto future = CAsync::Async<int>( AT_Async, [&] () -> int {
 		std::this_thread::sleep_for( 2s );
-		throw std::runtime_error( "For test needs." );
+		return 42;
 	} );
 
 	try {
 		int result;
-		EXPECT_FALSE( future.TryGet( result ) ); // Either false or exception, most likely false.
+		assert( !future.TryGet( result ) ); // Either false or exception, most likely false.
 	} catch( const std::exception& exception ) {
-		EXPECT_STREQ( exception.what(), "For test needs." );
+		assert( std::string{ exception.what() } == "For test needs." );
 	}
 
 	try {
@@ -149,11 +153,13 @@ TEST( Async, TryGetAsyncException )
 {
 	auto future = CAsync::Async<int>( AT_Async, [&] () -> int { throw std::runtime_error( "For test needs." ); } );
 
+	std::this_thread::sleep_for( 2s ); // Waut to be sure that future is ready.
+
 	try {
 		int result;
-		EXPECT_FALSE( future.TryGet( result ) ); // Either false or exception, most likely exception.
+		assert( future.TryGet( result ) ); // Either false or exception, most likely exception.
 	} catch( const std::exception& exception ) {
-		EXPECT_STREQ( exception.what(), "For test needs." );
+		assert( std::string{ exception.what() } == "For test needs." );
 	}
 
 	try {
@@ -190,11 +196,9 @@ TEST( Async, TryGetSyncValue )
 
 TEST( Async, TryGetSyncException )
 {
-	auto time = 2000ms;
-
 	auto start = std::chrono::high_resolution_clock::now();
 	auto future = CAsync::Async<int>( AT_Sync, [&] () -> int {
-		std::this_thread::sleep_for( time );
+		std::this_thread::sleep_for( 2s );
 		throw std::runtime_error( "For test needs." );
 	} );
 	auto end = std::chrono::high_resolution_clock::now();
@@ -208,7 +212,7 @@ TEST( Async, TryGetSyncException )
 	}
 
 	std::chrono::duration<double, std::milli> elapsed = end - start;
-	EXPECT_GE( elapsed.count(), time.count() );
+	EXPECT_GE( elapsed.count(), 2000 );
 
 	try {
 		future.Get();
@@ -241,7 +245,6 @@ TEST( Async, NotOverloadedPool )
 
 	std::chrono::duration<double, std::milli> elapsed = end - start;
 	EXPECT_LE( elapsed.count(), 2000 );  // Task in async mode so Async returns future immediately.
-	std::this_thread::sleep_for( 10s );
 
 	for( auto& future : futures ) {
 		try {
@@ -328,8 +331,7 @@ TEST( Then, SavingWhenException )
 {
 	CPromise<int> promise{};
 	auto future = promise.GetFuture();
-	std::function<int( int )> function = [&] ( int number ) -> int { throw std::runtime_error( "For test needs." ); };
-	auto next = future.Then( function );
+	auto next = future.Then<int>( [&] ( int number ) -> int { throw std::runtime_error( "For test needs." ); } );
 
 	promise.SetValue( 42 );
 
@@ -350,11 +352,10 @@ TEST( Then, NotCallWhenException )
 {
 	CPromise<int> promise{};
 	auto future = promise.GetFuture();
-	std::function<int( int )> function = [&] ( int number ) -> int {
+	auto next = future.Then<int>( [&] ( int number ) -> int {
 		EXPECT_TRUE( false );
 		return 0;
-	};
-	auto next = future.Then( function );
+	} );
 
 	promise.SetException( std::runtime_error( "For test needs." ) );
 
@@ -377,8 +378,7 @@ TEST( Then, OtherType )
 {
 	CPromise<int> promise{};
 	auto future = promise.GetFuture();
-	std::function<double( int )> function = [] ( int number ) -> double { return static_cast<double>( number ) / 5.0; };
-	auto next = future.Then( function );
+	auto next = future.Then<double>( [] ( int number ) -> double { return static_cast<double>( number ) / 5.0; } );
 
 	promise.SetValue( 42 );
 
@@ -386,5 +386,5 @@ TEST( Then, OtherType )
 	auto nextResult = next.Get();
 
 	EXPECT_EQ( futureResult, 42 );
-	EXPECT_EQ( nextResult, function( 42 ) );
+	EXPECT_EQ( nextResult, 42.0 / 5.0 );
 }

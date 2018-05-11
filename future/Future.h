@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Async.h"
 #include "FutureState.h"
 #include "Promise.h"
 #include "Thread.h"
@@ -25,7 +26,10 @@ public:
 	template<class U> CFuture<U> Then( std::function<U( T )> function );
 
 private:
-	friend CPromise<T>;
+	friend class CPromise<T>;
+	friend class CAsync;
+
+	CFuture( const std::shared_ptr<CFutureState>& _data );
 
 	std::shared_ptr<CFutureState> data{ new CFutureState{} };
 	inline static std::vector<CThread> workers{};
@@ -98,7 +102,7 @@ bool CFuture<std::any>::TryGet( std::any& result )
 
 template<class T>
 template<class U>
-inline CFuture<U> CFuture<T>::Then( std::function<U( T )> function )
+CFuture<U> CFuture<T>::Then( std::function<U( T )> function )
 {
 	CPromise<U> promise{};
 	auto currentFuture = *this;
@@ -112,6 +116,12 @@ inline CFuture<U> CFuture<T>::Then( std::function<U( T )> function )
 	};
 	workers.emplace_back( std::move( std::thread{ executable } ) );
 	return thenFuture;
+}
+
+template<class T>
+CFuture<T>::CFuture( const std::shared_ptr<CFutureState>& _data ) :
+	data{ _data }
+{
 }
 
 template<class T>

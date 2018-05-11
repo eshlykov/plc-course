@@ -33,7 +33,7 @@ CFuture<T> CAsync::Async( const TAsyncType type, std::function<T(A...)> function
 	auto executable = std::bind( function, agruments... );
 
 	if( type == AT_Async && pool.HasFreeWorkers() ) {
-		return pool.Submit( executable ).Then<T>( [] ( std::any value ) -> T { return std::any_cast<T>( value ); } );
+		return  CFuture<T>( pool.Submit( executable ).data );
 	}
 
 	CPromise<T> promise{};
@@ -52,7 +52,7 @@ template<class T>
 CFuture<T> CAsync::Async( const TAsyncType type, std::function<T()> function )
 {
 	if( type == AT_Async && pool.HasFreeWorkers() ) {
-		return pool.Submit( function ).Then<T>( [] ( std::any value ) -> T { return std::any_cast<T>( value ); } );
+		return CFuture<T>( pool.Submit( function ).data );
 	}
 
 	CPromise<T> promise{};

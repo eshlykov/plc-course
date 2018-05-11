@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Async.h"
 #include "FutureState.h"
 #include "Promise.h"
 #include "Thread.h"
@@ -11,6 +12,8 @@
 
 template<class T>
 class CPromise;
+
+class CAsync;
 
 template<class T>
 class CFuture {
@@ -25,12 +28,15 @@ public:
 
 private:
 	friend CPromise<T>;
+	friend CAsync;
+	template<class U> friend class CFuture;
 
 	std::shared_ptr<CFutureState<T>> data{ new CFutureState<T>{} };
 	inline static std::vector<CThread> workers{};
 
 	void setValue( T&& value );
 	void setException( const std::exception& exception );
+	template<class U> CFuture<U> castValue();
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -105,4 +111,20 @@ void CFuture<T>::setException( const std::exception& exception )
 	data->exception = exception;
 	data->state = FS_HasException;
 	data->isNotWaiting.notify_all();
+}
+
+template<class T>
+template<class U>
+CFuture<U> CFuture<T>::castValue()
+{
+	std::unique_lock<std::mutex> lock( data->mutex );
+	data->isNotWaiting.wait( lock, [&] { return data->state != FS_Waiting; } );
+	CFuture<U> future{};
+	future.data->state = data->state;
+	if( data->state == FS_HasValue ) {
+		future.data->value = std::any_cast<U>( data->value );
+	} else if( data->state == FS_HasException ) {
+		future.data->exception = data->exception;
+	}
+	return future;
 }

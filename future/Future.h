@@ -104,18 +104,8 @@ template<class T>
 template<class U>
 CFuture<U> CFuture<T>::Then( std::function<U( T )> function )
 {
-	CPromise<U> promise{};
 	auto currentFuture = *this;
-	auto thenFuture = promise.GetFuture();
-	auto executable = [currentFuture, promise, function] () mutable {
-		try {
-			promise.SetValue( function( currentFuture.Get() ) );
-		} catch( const std::exception& exception ) {
-			promise.SetException( exception );
-		}
-	};
-	workers.emplace_back( std::move( std::thread{ executable } ) );
-	return thenFuture;
+	return CAsync::Async<U>( AT_Async, [currentFuture, function] () mutable -> U { return function( currentFuture.Get() ); } );
 }
 
 template<class T>

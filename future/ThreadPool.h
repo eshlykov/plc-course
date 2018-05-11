@@ -2,6 +2,7 @@
 
 #include "BlockingQueue.h"
 #include "Future.h"
+#include "Thread.h"
 
 #include <atomic>
 #include <functional>
@@ -27,7 +28,7 @@ private:
 	int workersCount{ 0 };
 	std::atomic<int> busyWorkersCount{ 0 };
 	CBlockingQueue<std::function<void()>> queue{};
-	std::vector<std::thread> workers{};
+	std::vector<CThread> workers{};
 	std::mutex mutex{};
 };
 
@@ -46,7 +47,7 @@ CThreadPool<T>::CThreadPool( const int _workersCount ) :
 	workersCount{ _workersCount }
 {
 	for( int i = 0; i < workersCount; ++i ) {
-		workers.emplace_back( &CThreadPool<T>::DoTask, this );
+		workers.emplace_back( std::move( std::thread{ &CThreadPool<T>::DoTask, this } ) );
 	}
 }
 
@@ -56,7 +57,6 @@ CThreadPool<T>::~CThreadPool()
 	for( int i = 0; i < workersCount; ++i ) {
 		queue.Produce( [] { throw CThreadPoolClosed{}; } );
 	}
-	std::for_each( workers.begin(), workers.end(), [] ( auto& worker ) { worker.join(); } );
 }
 
 template<class T>

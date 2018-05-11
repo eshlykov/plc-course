@@ -12,6 +12,8 @@
 
 using namespace std::chrono_literals;
 
+CThreadPool<std::any> CAsync::pool{ 4 };
+
 TEST( FuturePromise, SetValue )
 {
 	CPromise<int> promise{};
@@ -83,8 +85,6 @@ TEST( FuturePromise, TryGetException )
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
-CThreadPool<std::any> CAsync::pool{ 4 };
 
 TEST( Async, GetAsyncValue )
 {

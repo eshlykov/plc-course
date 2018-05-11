@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <any>
 #include <condition_variable>
 #include <exception>
 #include <mutex>
@@ -15,19 +16,15 @@ enum TFutureState : int {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template<class T>
-class CFuture;
-
-template<class T>
 class CFutureState {
 public:
 	CFutureState() = default;
 
 private:
-	friend CFuture<T>;
+	template<class T> friend class CFuture;
 
 	TFutureState state{ FS_Waiting };
-	T value{};
+	std::any value{};
 	std::exception exception{};
 	std::mutex mutex{};
 	std::condition_variable isNotWaiting{};

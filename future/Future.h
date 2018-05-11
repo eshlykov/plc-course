@@ -5,6 +5,7 @@
 #include "Thread.h"
 
 #include <algorithm>
+#include <any>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -26,7 +27,7 @@ public:
 private:
 	friend CPromise<T>;
 
-	std::shared_ptr<CFutureState<T>> data{ new CFutureState<T>{} };
+	std::shared_ptr<CFutureState> data{ new CFutureState{} };
 	inline static std::vector<CThread> workers{};
 
 	void setValue( T&& value );
@@ -53,6 +54,17 @@ T CFuture<T>::Get()
 	std::unique_lock<std::mutex> lock( data->mutex );
 	data->isNotWaiting.wait( lock, [&] { return data->state != FS_Waiting; } );
 	if( data->state == FS_HasValue ) {
+		return std::any_cast<T>( data->value );
+	}
+	throw data->exception;
+}
+
+template<>
+std::any CFuture<std::any>::Get()
+{
+	std::unique_lock<std::mutex> lock( data->mutex );
+	data->isNotWaiting.wait( lock, [&] { return data->state != FS_Waiting; } );
+	if( data->state == FS_HasValue ) {
 		return data->value;
 	}
 	throw data->exception;
@@ -60,6 +72,19 @@ T CFuture<T>::Get()
 
 template<class T>
 bool CFuture<T>::TryGet( T& result )
+{
+	std::lock_guard<std::mutex> lock( data->mutex );
+	if( data->state == FS_Waiting ) {
+		return false;
+	} else if( data->state == FS_HasValue ) {
+		result = std::any_cast<T>( data->value );
+		return true;
+	}
+	throw data->exception;
+}
+
+template<>
+bool CFuture<std::any>::TryGet( std::any& result )
 {
 	std::lock_guard<std::mutex> lock( data->mutex );
 	if( data->state == FS_Waiting ) {

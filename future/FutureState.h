@@ -1,12 +1,10 @@
 #pragma once
 
 #include <algorithm>
-#include <any>
 #include <condition_variable>
 #include <exception>
 #include <mutex>
 #include <thread>
-#include <type_traits>
 #include <vector>
 
 enum TFutureState : int {
@@ -26,8 +24,7 @@ public:
 	CFutureState() = default;
 
 private:
-	template<class U> friend class CFuture;
-	template<class U> friend class CFutureState;
+	friend CFuture<T>;
 
 	TFutureState state{ FS_Waiting };
 	T value{};

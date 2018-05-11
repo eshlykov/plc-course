@@ -32,7 +32,6 @@ private:
 	CFuture( const std::shared_ptr<CFutureState>& _data );
 
 	std::shared_ptr<CFutureState> data{ new CFutureState{} };
-	inline static std::vector<CThread> workers{};
 
 	void setValue( T&& value );
 	void setException( const std::exception& exception );

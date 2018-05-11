@@ -41,15 +41,15 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 template<class T>
-CFuture<T>::CFuture( const CFuture<T>& other )
+CFuture<T>::CFuture( const CFuture<T>& other ) :
+	data{ other.data }
 {
-	data = other.data;
 }
 
 template<class T>
-CFuture<T>::CFuture( CFuture<T>&& other )
+CFuture<T>::CFuture( CFuture<T>&& other ) :
+	data{ std::move( other.data ) }
 {
-	data = std::move( other.data );
 }
 
 template<class T>

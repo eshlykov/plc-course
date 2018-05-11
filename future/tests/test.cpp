@@ -116,8 +116,8 @@ TEST( Async, TryGetAsyncValue )
 	std::this_thread::sleep_for( 2s ); // Waut to be sure that future is ready.
 
 	int result;
-	assert( future.TryGet( result ) );
-	assert( result == 42 );
+	EXPECT_TRUE( future.TryGet( result ) );
+	EXPECT_EQ( result, 42 );
 
 	try {
 		future.Get();
@@ -136,9 +136,9 @@ TEST( Async, TryGetAsyncWaiting )
 
 	try {
 		int result;
-		assert( !future.TryGet( result ) ); // Either false or exception, most likely false.
+		EXPECT_FALSE( future.TryGet( result ) ); // Either false or exception, most likely false.
 	} catch( const std::exception& exception ) {
-		assert( std::string{ exception.what() } == "For test needs." );
+		EXPECT_STREQ( exception.what(), "For test needs." );
 	}
 
 	try {
@@ -157,9 +157,9 @@ TEST( Async, TryGetAsyncException )
 
 	try {
 		int result;
-		assert( future.TryGet( result ) ); // Either false or exception, most likely exception.
+		EXPECT_TRUE( future.TryGet( result ) ); // Either false or exception, most likely exception.
 	} catch( const std::exception& exception ) {
-		assert( std::string{ exception.what() } == "For test needs." );
+		EXPECT_STREQ(exception.what(), "For test needs." );
 	}
 
 	try {

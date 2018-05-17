@@ -3,13 +3,13 @@
 
 #include "VirtualClass.h"
 
-VirtualClass( Base, int a )
-DefineMethod( Base, OnlyBase, std::cout << "Base, OnlyBase" << std::endl )
-DefineMethod( Base, Both, std::cout << "Base, Both" << std::endl )
+VirtualClass( Base, int a = 1 )
+DefineMethod( Base, OnlyBase, std::cout << "Base, OnlyBase: a = " << self->a << std::endl )
+DefineMethod( Base, Both, std::cout << "Base, Both: a = " << self->a << std::endl )
 
-VirtualClassDerived( Derived, Base, int b )
-DefineMethod( Derived, OnlyDerived, std::cout << "Derived, OnlyDerived" << std::endl )
-DefineMethod( Derived, Both, std::cout << "Derived, Both" << std::endl )
+VirtualClassDerived( Derived, Base, int b = 2 )
+DefineMethod( Derived, OnlyDerived, std::cout << "Derived, OnlyDerived: b = " << self->b << std::endl )
+DefineMethod( Derived, Both, std::cout << "Derived, Both: a = " << self->a << " b = " << self->b << std::endl )
 
 int main()
 {

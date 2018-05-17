@@ -15,8 +15,8 @@ enum THierarchicalType : int {
 class Class { \
 public:  \
 	const static THierarchicalType ClassType = HT_Base; \
-	static std::unordered_map<std::string, std::function<void()>> BaseMethods; \
-	static std::unordered_map<std::string, std::function<void()>> DerivedMethods; \
+	static std::unordered_map<std::string, std::function<void(void*)>> BaseMethods; \
+	static std::unordered_map<std::string, std::function<void(void*)>> DerivedMethods; \
 	const THierarchicalType ObjectType; \
 	const std::string Name; \
 	Fields; \
@@ -27,8 +27,8 @@ public:  \
 	{ \
 	} \
 }; \
-std::unordered_map<std::string, std::function<void()>> Class::BaseMethods{}; \
-std::unordered_map<std::string, std::function<void()>> Class::DerivedMethods{};
+std::unordered_map<std::string, std::function<void(void*)>> Class::BaseMethods{}; \
+std::unordered_map<std::string, std::function<void(void*)>> Class::DerivedMethods{};
 
 #define VirtualClassDerived( Class, Base, Fields ) \
 class Class : public Base { \
@@ -45,9 +45,15 @@ public:  \
 #define DefineMethod( Class, Method, Body ) \
 void* Class##Method = []{ \
 	if( Class::ClassType == HT_Base ) { \
-		Class::BaseMethods[#Method] = [&]{ Body; }; \
+		Class::BaseMethods[#Method] = []( void* ptr ) { \
+			auto self = static_cast<Class*>( ptr ); \
+			[]( Class* self ) { Body; }( self ); \
+		}; \
 	} else { \
-		Class::DerivedMethods[#Method] = [&]{ Body; }; \
+		Class::DerivedMethods[#Method] = []( void* ptr ) { \
+			auto self = static_cast<Class*>( ptr ); \
+			[]( Class* self ) { Body; }( self ); \
+		}; \
 	} \
 	return nullptr; \
 }();
@@ -55,15 +61,15 @@ void* Class##Method = []{ \
 #define VirtualCall( ObjectPtr, Method ) { \
 	if( ObjectPtr->ObjectType == HT_Base ) { \
 		if( ObjectPtr->BaseMethods.find( #Method ) != ObjectPtr->BaseMethods.end() ) { \
-			ObjectPtr->BaseMethods.at( #Method )(); \
+			ObjectPtr->BaseMethods.at( #Method )( static_cast<void*>( ObjectPtr ) ); \
 		} else { \
 			throw std::logic_error( "Class " + ObjectPtr->Name + " does not have method " + #Method + "." ); \
 		} \
 	} else { \
 		if( ObjectPtr->DerivedMethods.find( #Method ) != ObjectPtr->DerivedMethods.end() ) { \
-			ObjectPtr->DerivedMethods.at( #Method )(); \
+			ObjectPtr->DerivedMethods.at( #Method )( static_cast<void*>( ObjectPtr ) ); \
 		} else if( ObjectPtr->BaseMethods.find( #Method ) != ObjectPtr->BaseMethods.end() ) { \
-			ObjectPtr->BaseMethods.at( #Method )(); \
+			ObjectPtr->BaseMethods.at( #Method )( static_cast<void*>( ObjectPtr ) ); \
 		} else { \
 			throw std::logic_error( "Class " + ObjectPtr->Name + " does not have method " + #Method + "." ); \
 		} \
